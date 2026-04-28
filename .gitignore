@@ -1,0 +1,11 @@
+*.zip
+*.7z
+*.crx
+*.pem
+*.key
+*.log
+node_modules/
+dist/
+build/
+.DS_Store
+Thumbs.db

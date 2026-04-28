@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebCraft 网页工坊</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">🛠️</div>
+      <h1>WebCraft 网页工坊</h1>
+      <button id="openOptions" class="icon-btn" title="打开设置页">⚙</button>
+    </div>
+
+    <!-- 标签页导航 -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="screenshot">📸 截图</button>
+      <button class="tab-btn" data-tab="translate">🌐 翻译</button>
+      <button class="tab-btn" data-tab="youtube">🎬 YouTube</button>
+    </div>
+
+    <!-- 截图标签内容 -->
+    <div class="tab-content active" id="tab-screenshot">
+      <div class="section">
+        <div class="control-group">
+          <label class="group-label" for="customName">名称 (自动保存)</label>
+          <input type="text" id="customName" placeholder="例如：张三">
+        </div>
+
+        <div class="control-group">
+          <label class="group-label">生成工具</label>
+          <div class="radio-group" id="toolRadioGroup">
+            <label class="radio-item">
+              <input type="radio" name="tool" value="Midjourney生成" checked> Midjourney生成
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="tool" value="Firefly生成"> Firefly生成
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="tool" value="购买Gemini生成"> 购买Gemini生成
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="tool" value="Flow Ultra版"> Flow Ultra版
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="tool" value="Flow Pro版"> Flow Pro版
+            </label>
+            <!-- 自定义选项将在这里动态添加 -->
+            <div id="customToolsContainer"></div>
+            <!-- 添加自定义按钮 -->
+            <button type="button" id="addCustomTool" class="add-custom-btn" title="添加自定义选项">➕ 添加自定义</button>
+          </div>
+          <!-- 自定义输入面板 -->
+          <div id="customToolPanel" class="custom-tool-panel" style="display: none;">
+            <input type="text" id="customToolInput" placeholder="输入自定义工具名称">
+            <div class="custom-tool-actions">
+              <button type="button" id="confirmCustomTool" class="btn-small primary">确定</button>
+              <button type="button" id="cancelCustomTool" class="btn-small secondary">取消</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="group-label">保存格式</label>
+          <div class="radio-group radio-group-horizontal">
+            <label class="radio-item">
+              <input type="radio" name="format" value="jpg" checked> JPG 图片
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="format" value="pdf"> PDF 文档
+            </label>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="btnCaptureVisible" class="btn primary compact-action" title="截图 (当前可视区域)">📷 可视</button>
+          <button id="btnCaptureFull" class="btn secondary compact-action" title="截图 (长截图/滚屏)">📜 长图</button>
+          <button id="btnStartRecording" class="btn secondary compact-action record-action" title="录制 (区域录像)">🎥 录屏</button>
+        </div>
+
+        <div class="control-group" style="margin-top: 10px;">
+          <div class="toggle-option" style="padding: 8px 0;">
+            <label class="toggle-label" for="manualCaptureMode" style="flex: 1;">
+              <span class="toggle-text" style="font-size: 13px;">📍 从当前位置开始</span>
+              <span class="toggle-desc" style="font-size: 11px;">可手动点击停止截图</span>
+            </label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="manualCaptureMode">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="screenshotStatus" class="status-message"></div>
+      </div>
+    </div>
+
+    <!-- 翻译标签内容 -->
+    <div class="tab-content" id="tab-translate">
+      <div class="status-card">
+        <div class="status-indicator active"></div>
+        <span class="status-text">翻译功能已启用</span>
+      </div>
+
+      <!-- 模式选择 -->
+      <div class="section">
+        <div class="toggle-option" style="margin-bottom: 15px;">
+          <label class="toggle-label" for="translateEnabled">
+            <span class="toggle-text">启用翻译功能</span>
+            <span class="toggle-desc">开启/关闭页面划词/输入框翻译</span>
+          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="translateEnabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="control-group" id="shortcutGroup">
+          <label class="group-label">触发快捷键</label>
+          <select id="translateShortcut" class="select-input">
+            <option value="triple_space">三连击空格 (默认)</option>
+            <option value="ctrl_q">Ctrl + Q</option>
+            <option value="alt_q">Alt + Q</option>
+            <option value="ctrl_e">Ctrl + E</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="targetLangGroup">
+          <label class="group-label">目标语言</label>
+          <select id="translateTargetLang" class="select-input">
+            <option value="auto">自动中英互译</option>
+            <option value="zh-CN">中文</option>
+            <option value="en">英语</option>
+            <option value="ja">日语</option>
+            <option value="ko">韩语</option>
+            <option value="fr">法语</option>
+            <option value="de">德语</option>
+            <option value="es">西班牙语</option>
+            <option value="ru">俄语</option>
+          </select>
+        </div>
+
+        <h2>翻译引擎</h2>
+        <div class="mode-options">
+          <label class="mode-option">
+            <input type="radio" name="translateEngine" value="google" checked>
+            <span class="mode-card">
+              <span class="mode-icon">⚡</span>
+              <span class="mode-name">快速翻译</span>
+              <span class="mode-desc">Google 翻译，无需 API Key</span>
+            </span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="translateEngine" value="deepl">
+            <span class="mode-card">
+              <span class="mode-icon">◆</span>
+              <span class="mode-name">DeepL</span>
+              <span class="mode-desc" id="deeplEngineDesc">质量优先，失败回落 Google</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 隐藏 YouTube 翻译按钮 -->
+      <div class="section">
+        <div class="toggle-option">
+          <label class="toggle-label" for="hideYoutubeTranslate">
+            <span class="toggle-text">隐藏 YouTube "翻译成中文" 按钮</span>
+            <span class="toggle-desc">隐藏评论下方的翻译按钮</span>
+          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideYoutubeTranslate">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- YouTube 标签内容 -->
+    <div class="tab-content" id="tab-youtube">
+      <div class="section">
+        <h2>单视频下载</h2>
+        <div class="control-group">
+          <label class="group-label" for="youtubeUrl">粘贴 YouTube 视频链接</label>
+          <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+
+        <button id="btnDownloadThumbnail" class="btn primary">⬇️ 下载最高清缩略图</button>
+      </div>
+
+      <div class="section">
+        <h2>批量下载</h2>
+        <div class="control-group">
+          <label class="group-label" for="playlistUrl">视频列表/频道/主页链接</label>
+          <input type="text" id="playlistUrl" placeholder="https://www.youtube.com/@Channel/videos">
+        </div>
+        <div class="control-group">
+          <label class="group-label">下载数量限制</label>
+          <div class="radio-group radio-group-horizontal">
+            <label class="radio-item">
+              <input type="radio" name="batchLimit" value="50" checked> 50
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="batchLimit" value="100"> 100
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="batchLimit" value="200"> 200
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="batchLimit" value="500"> 500
+            </label>
+          </div>
+        </div>
+        <button id="btnBatchDownload" class="btn secondary">📦 分析并批量下载</button>
+        <div id="youtubeStatus" class="status-message"></div>
+      </div>
+
+      <div class="section">
+        <h2>右侧推荐视频</h2>
+        <div class="control-group">
+          <label class="group-label">显示模式</label>
+          <div class="radio-group radio-group-horizontal">
+            <label class="radio-item">
+              <input type="radio" name="recommendationsMode" value="enabled" checked> 开启
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="recommendationsMode" value="hidden"> 关闭
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="recommendationsMode" value="whitelist"> 白名单
+            </label>
+          </div>
+        </div>
+        <div class="control-group" id="recommendationsWhitelistGroup" style="display: none;">
+          <label class="group-label" for="recommendationsWhitelist">频道白名单</label>
+          <textarea id="recommendationsWhitelist" class="textarea-input" rows="3" placeholder="每行一个频道名，例如：&#10;中央社&#10;Max科普世界"></textarea>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <span id="footerText">快捷键: Ctrl+Shift+S 截图</span>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+
+</html>

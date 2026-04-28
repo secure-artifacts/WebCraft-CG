@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebCraft 网页工坊设置</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">🛠️</div>
+      <div>
+        <h1>WebCraft 网页工坊</h1>
+        <p id="versionText">版本</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-page="overview">总览</button>
+      <button class="nav-btn" data-page="screenshot">截图</button>
+      <button class="nav-btn" data-page="translate">翻译</button>
+      <button class="nav-btn" data-page="recording">区域录屏</button>
+      <button class="nav-btn" data-page="youtube">YouTube</button>
+      <button class="nav-btn" data-page="backup">导入导出</button>
+      <button class="nav-btn" data-page="changelog">更新日志</button>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <section class="page active" id="page-overview">
+      <header class="page-header">
+        <h2>开关总览</h2>
+        <p>集中控制插件里的主要模块。关闭后 popup 入口会禁用，对应页面脚本也会尽量停止工作。</p>
+      </header>
+      <div class="settings-grid">
+        <label class="setting-card">
+          <span>
+            <strong>截图</strong>
+            <small>可视区域截图、长截图、截图凭证命名</small>
+          </span>
+          <input type="checkbox" id="screenshotModuleEnabled" data-setting="screenshotModuleEnabled" checked>
+        </label>
+        <label class="setting-card">
+          <span>
+            <strong>翻译</strong>
+            <small>输入框快捷键翻译、选中文本翻译、历史记录</small>
+          </span>
+          <input type="checkbox" id="translateEnabled" data-setting="translateEnabled" checked>
+        </label>
+        <label class="setting-card">
+          <span>
+            <strong>YouTube</strong>
+            <small>缩略图下载、推荐视频过滤、隐藏评论翻译按钮</small>
+          </span>
+          <input type="checkbox" id="youtubeToolsEnabled" data-setting="youtubeToolsEnabled" checked>
+        </label>
+        <label class="setting-card">
+          <span>
+            <strong>区域录屏</strong>
+            <small>区域选择、记住上次区域、暂停/继续、大小保护</small>
+          </span>
+          <input type="checkbox" id="recordingModuleEnabled" data-setting="recordingModuleEnabled" checked>
+        </label>
+      </div>
+    </section>
+
+    <section class="page" id="page-translate">
+      <header class="page-header">
+        <h2>翻译增强</h2>
+        <p>快捷键已经在 popup 里配置；这里管理语言、选中文本、历史和常用短语。</p>
+      </header>
+      <div class="panel">
+        <label class="field">
+          <span>翻译引擎</span>
+          <select id="translateEngine" data-setting="translateEngine">
+            <option value="google">Google Translate（无需 API Key）</option>
+            <option value="deepl">DeepL API</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>DeepL API 类型</span>
+          <select id="deeplApiEndpoint" data-setting="deeplApiEndpoint">
+            <option value="auto">自动选择</option>
+            <option value="pro">DeepL Pro / api.deepl.com</option>
+            <option value="free">DeepL Free / api-free.deepl.com</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>DeepL API Key</span>
+          <input type="password" id="deeplApiKey" data-setting="deeplApiKey" placeholder="填入你的 DeepL Auth Key">
+        </label>
+        <label class="field">
+          <span>目标语言</span>
+          <select id="translateTargetLang" data-setting="translateTargetLang">
+            <option value="auto">自动中英互译</option>
+            <option value="zh-CN">中文</option>
+            <option value="en">英语</option>
+            <option value="ja">日语</option>
+            <option value="ko">韩语</option>
+            <option value="fr">法语</option>
+            <option value="de">德语</option>
+            <option value="es">西班牙语</option>
+            <option value="ru">俄语</option>
+          </select>
+        </label>
+        <label class="setting-line">
+          <span>
+            <strong>优先翻译选中文本</strong>
+            <small>输入框内有选中内容时，只替换选中的部分。</small>
+          </span>
+          <input type="checkbox" id="translateSelectionOnly" data-setting="translateSelectionOnly" checked>
+        </label>
+        <label class="setting-line">
+          <span>
+            <strong>保存翻译历史</strong>
+            <small>最多保留最近 50 条，方便复用。</small>
+          </span>
+          <input type="checkbox" id="translateHistoryEnabled" data-setting="translateHistoryEnabled" checked>
+        </label>
+      </div>
+      <div class="panel two-col">
+        <div>
+          <div class="panel-title">常用短语</div>
+          <textarea id="translationPhrases" data-setting="translationPhrases" rows="8" placeholder="每行一个短语"></textarea>
+          <button class="secondary-btn" id="savePhrases">保存短语</button>
+        </div>
+        <div>
+          <div class="panel-title">翻译历史</div>
+          <div id="historyList" class="history-list"></div>
+          <button class="secondary-btn" id="clearHistory">清空历史</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-recording">
+      <header class="page-header">
+        <h2>区域录屏</h2>
+        <p>控制录制浮窗、边框、自动停止条件，避免视频过大。</p>
+      </header>
+      <div class="panel">
+        <label class="setting-line">
+          <span>
+            <strong>录制时显示区域边框</strong>
+            <small>用细红框标出正在录制的区域。</small>
+          </span>
+          <input type="checkbox" id="recordingShowBorder" data-setting="recordingShowBorder" checked>
+        </label>
+        <label class="field">
+          <span>最长录制时长（分钟）</span>
+          <input type="number" id="recordingMaxMinutes" data-setting="recordingMaxMinutes" min="1" max="180" value="30">
+        </label>
+        <label class="field">
+          <span>最大文件体积保护（MB）</span>
+          <input type="number" id="recordingMaxSizeMB" data-setting="recordingMaxSizeMB" min="50" max="4096" value="500">
+        </label>
+      </div>
+    </section>
+
+    <section class="page" id="page-screenshot">
+      <header class="page-header">
+        <h2>截图</h2>
+        <p>自定义截图和录屏的文件名模板。可用占位符：{tool}、{name}、{date}、{time}。</p>
+      </header>
+      <div class="panel">
+        <label class="field">
+          <span>文件名模板</span>
+          <input type="text" id="screenshotFilenameTemplate" data-setting="screenshotFilenameTemplate" value="截图凭证-{tool}-{name}-{date}">
+        </label>
+      </div>
+    </section>
+
+    <section class="page" id="page-youtube">
+      <header class="page-header">
+        <h2>YouTube</h2>
+        <p>推荐视频白名单仍可在 popup 的 YouTube 页快速调整。</p>
+      </header>
+      <div class="panel">
+        <label class="setting-line">
+          <span>
+            <strong>启用 YouTube 工具</strong>
+            <small>关闭后不再注入缩略图下载按钮，也不处理推荐视频过滤。</small>
+          </span>
+          <input type="checkbox" id="youtubeToolsEnabledMirror" data-setting="youtubeToolsEnabled" checked>
+        </label>
+        <label class="field">
+          <span>缩略图文件名模板</span>
+          <input type="text" id="youtubeThumbnailFilenameTemplate" data-setting="youtubeThumbnailFilenameTemplate" value="{channel}-{title}-{date}">
+        </label>
+        <label class="field">
+          <span>黑名单（频道名或标题关键词）</span>
+          <textarea id="youtubeBlacklist" data-setting="youtubeBlacklist" rows="5" placeholder="每行一个，例如：&#10;某个频道名&#10;不想看的关键词"></textarea>
+        </label>
+        <label class="setting-line">
+          <span>
+            <strong>隐藏 Shorts</strong>
+            <small>隐藏 YouTube 推荐区和列表里的 Shorts 卡片。</small>
+          </span>
+          <input type="checkbox" id="youtubeHideShorts" data-setting="youtubeHideShorts">
+        </label>
+        <label class="setting-line">
+          <span>
+            <strong>隐藏直播</strong>
+            <small>隐藏直播、正在直播和直播回放相关卡片。</small>
+          </span>
+          <input type="checkbox" id="youtubeHideLive" data-setting="youtubeHideLive">
+        </label>
+        <label class="setting-line">
+          <span>
+            <strong>隐藏广告位</strong>
+            <small>隐藏 YouTube 页面中的推广卡片和广告占位。</small>
+          </span>
+          <input type="checkbox" id="youtubeHideAds" data-setting="youtubeHideAds">
+        </label>
+      </div>
+    </section>
+
+    <section class="page" id="page-backup">
+      <header class="page-header">
+        <h2>导入导出配置</h2>
+        <p>换电脑或重装扩展时，可以把当前配置导出为 JSON，再导入恢复。</p>
+      </header>
+      <div class="panel actions">
+        <button class="primary-btn" id="exportConfig">导出配置</button>
+        <label class="secondary-btn file-btn">
+          导入配置
+          <input type="file" id="importConfig" accept="application/json">
+        </label>
+        <span id="backupStatus"></span>
+      </div>
+    </section>
+
+    <section class="page" id="page-changelog">
+      <header class="page-header">
+        <h2>版本和更新日志</h2>
+        <p>记录这套工具最近做过什么，后续排查也方便。</p>
+      </header>
+      <div class="panel changelog">
+        <h3>1.6.6</h3>
+        <ul>
+          <li>新增独立设置页、模块总开关、配置导入导出。</li>
+          <li>录屏控制条改为紧凑浮窗，加入录制边框、最大时长和大小保护。</li>
+          <li>翻译支持选中文本替换、目标语言设置、历史记录和常用短语。</li>
+          <li>翻译引擎新增 DeepL API，支持 Pro / Free 接口切换。</li>
+        </ul>
+        <h3>1.6.5</h3>
+        <ul>
+          <li>移除 Leonardo AI 功能。</li>
+          <li>区域录屏记住上次区域。</li>
+          <li>YouTube 推荐视频关闭/白名单，以及右侧缩略图下载按钮修复。</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <script src="options.js"></script>
+</body>
+
+</html>
