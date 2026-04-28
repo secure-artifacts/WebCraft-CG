@@ -1,0 +1,104 @@
+name: Trusted Extension Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches manifest version
+        run: |
+          VERSION="$(node -p "require('./manifest.json').version")"
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "Tag v$TAG does not match manifest version $VERSION"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Validate extension files
+        run: |
+          test -f manifest.json
+          test -f background.js
+          test -f content.js
+          test -f popup.html
+          test -f popup.js
+          test -f popup.css
+          test -f options.html
+          test -f options.js
+          test -f options.css
+          test -f jspdf.umd.min.js
+          test -f icons/icon16.png
+          test -f icons/icon48.png
+          test -f icons/icon128.png
+          node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8')); console.log('manifest ok')"
+          node --check background.js
+          node --check content.js
+          node --check popup.js
+          node --check options.js
+
+      - name: Scan packaged source for secrets
+        shell: pwsh
+        run: |
+          $paths = @(
+            'manifest.json',
+            'background.js',
+            'content.js',
+            'popup.html',
+            'popup.js',
+            'popup.css',
+            'options.html',
+            'options.js',
+            'options.css',
+            'README.md'
+          )
+          $pattern = 'AIza|sk-|Bearer [A-Za-z0-9]|SPREADSHEET_ID\s*=\s*[''"][^''"]|DEFAULT_.*_ID\s*=\s*[''"][^''"]|docs\.google\.com/spreadsheets/d/[A-Za-z0-9_-]+|DeepL-Auth-Key\s+[A-Za-z0-9]'
+          $matches = Select-String -Path $paths -Pattern $pattern -CaseSensitive:$false
+          if ($matches) {
+            $matches | Format-Table -AutoSize
+            throw 'Potential secret or private ID found in packaged source.'
+          }
+
+      - name: Build extension zip
+        shell: pwsh
+        run: |
+          $zip = "WebCraft-CG-v$env:VERSION.zip"
+          $files = @(
+            '.gitignore',
+            'README.md',
+            'manifest.json',
+            'background.js',
+            'content.js',
+            'popup.html',
+            'popup.js',
+            'popup.css',
+            'options.html',
+            'options.js',
+            'options.css',
+            'jspdf.umd.min.js',
+            'icons'
+          )
+          Compress-Archive -Path $files -DestinationPath $zip -CompressionLevel Optimal
+          "ZIP_NAME=$zip" >> $env:GITHUB_ENV
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ env.ZIP_NAME }}
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true
