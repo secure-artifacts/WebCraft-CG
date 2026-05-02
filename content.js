@@ -3562,9 +3562,9 @@ console.log('WebCraft 网页工坊内容脚本已加载');
             position: fixed;
             top: 8px;
             right: 8px;
-            width: 32px;
-            height: 32px;
-            background: rgba(0, 0, 0, 0.75);
+            width: 28px;
+            height: 28px;
+            background: rgba(28, 30, 34, 0.72);
             border: none;
             border-radius: 50%;
             cursor: pointer;
@@ -3575,11 +3575,15 @@ console.log('WebCraft 网页工坊内容脚本已加载');
             transition: opacity 0.2s, transform 0.2s, background 0.2s;
             z-index: 1000;
             font-size: 16px;
-            color: white;
+            line-height: 1;
+            color: #fff;
+            padding: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.14);
+            backdrop-filter: blur(8px);
         }
         .yt-thumbnail-download-btn:hover {
-            background: rgba(255, 0, 0, 0.9);
-            transform: scale(1.1);
+            background: rgba(40, 44, 52, 0.9);
+            transform: scale(1.06);
         }
         
         /* 缩略图容器悬停显�?*/
@@ -3602,14 +3606,12 @@ console.log('WebCraft 网页工坊内容脚本已加载');
         #movie_player .yt-thumbnail-download-btn {
             top: 20px;
             right: 20px;
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
-            background: rgba(0, 0, 0, 0.5);
+            width: 30px;
+            height: 30px;
             z-index: 60; /* 确保在播放器控制层之�?*/
         }
-        #movie_player .yt-thumbnail-download-btn:hover {
-            background: rgba(255, 0, 0, 0.9);
+        #movie_player .yt-thumbnail-download-btn {
+            font-size: 17px;
         }
 
         .yt-webcraft-player-tools {
@@ -3690,12 +3692,50 @@ console.log('WebCraft 网页工坊内容脚本已加载');
         }
         .yt-thumbnail-download-btn.downloading::after {
             content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
             width: 14px;
             height: 14px;
             border: 2px solid #fff;
             border-top-color: transparent;
             border-radius: 50%;
             animation: yt-spin 0.8s linear infinite;
+            transform: translate(-50%, -50%);
+        }
+        .yt-thumbnail-download-btn.is-done::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 47%;
+            width: 11px;
+            height: 6px;
+            border: 0;
+            border-left: 3px solid #fff;
+            border-bottom: 3px solid #fff;
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
+        .yt-thumbnail-download-btn.is-error {
+            background: rgba(220, 38, 38, 0.86);
+        }
+        .yt-thumbnail-download-btn.is-error::before,
+        .yt-thumbnail-download-btn.is-error::after {
+            content: '';
+            display: block;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 14px;
+            height: 3px;
+            border: 0;
+            border-radius: 2px;
+            background: #fff;
+        }
+        .yt-thumbnail-download-btn.is-error::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+        .yt-thumbnail-download-btn.is-error::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
         }
         @keyframes yt-spin {
             to { transform: rotate(360deg); }
@@ -3912,73 +3952,50 @@ console.log('WebCraft 网页工坊内容脚本已加载');
     function createDownloadButton(videoId, isPlayer = false, element = null) {
         const btn = document.createElement('button');
         btn.className = 'yt-thumbnail-download-btn';
-        btn.innerHTML = '猬囷笍';
-        btn.title = '下载最高清缩略图';
+        btn.type = 'button';
+        btn.textContent = '⬇️';
+        btn.title = isPlayer ? '\u4e0b\u8f7d\u5f53\u524d\u89c6\u9891\u7f29\u7565\u56fe' : '\u4e0b\u8f7d\u6700\u9ad8\u6e05\u7f29\u7565\u56fe';
         btn.dataset.videoId = videoId;
-
-        // 如果是播放器上的按钮，添加特定的类或样式
-        if (isPlayer) {
-            btn.title = '下载当前视频缩略图';
-        }
-
-        btn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
+        btn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             if (btn.classList.contains('downloading')) return;
-
             btn.classList.add('downloading');
-            btn.innerHTML = '';
-
-            // 鑾峰彇鏍囬
+            btn.textContent = '';
             let title = 'video';
-            let channel = '未知频道';
+            let channel = '\u672a\u77e5\u9891\u9053';
             if (isPlayer) {
                 title = document.title.replace(' - YouTube', '');
                 channel = document.querySelector('ytd-video-owner-renderer ytd-channel-name a, #owner #channel-name a')?.textContent?.trim() || channel;
             } else if (element) {
                 const extracted = getVideoTitle(element, false);
-                if (extracted && extracted !== 'youtube_video') {
-                    title = extracted;
-                } else {
-                    // 再次尝试�?document title (如果是单视频�?或�?fallback
-                    title = `video_${videoId}`;
-                }
+                title = extracted && extracted !== 'youtube_video' ? extracted : 'video_' + videoId;
                 channel = getRecommendationChannelName(element) || channel;
             }
-
-            // 鍙笅杞芥渶楂樻竻 maxresdefault
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+            const thumbnailUrl = 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg';
             const filename = buildYoutubeFilename({ title, channel, videoId });
-
             try {
-                chrome.runtime.sendMessage({
-                    action: 'downloadThumbnail',
-                    payload: { url: thumbnailUrl, filename }
-                }, (response) => {
-                    if (response && response.success) {
-                        btn.innerHTML = '✓';
-                    } else {
-                        // 失败时不降级，直接显示错�?
-                        btn.innerHTML = '✕';
-                        console.warn('最高清缩略图下载失败，404 Not Found 或其他错误');
-                    }
-
+                chrome.runtime.sendMessage({ action: 'downloadThumbnail', payload: { url: thumbnailUrl, filename } }, (response) => {
+                    const ok = response && response.success;
+                    btn.textContent = '';
+                    btn.classList.toggle('is-done', ok);
+                    btn.classList.toggle('is-error', !ok);
+                    if (!ok) console.warn('YouTube thumbnail download failed:', response?.error);
                     setTimeout(() => {
-                        btn.innerHTML = '猬囷笍';
-                        btn.classList.remove('downloading');
-                    }, 2000);
+                        btn.classList.remove('downloading', 'is-done', 'is-error');
+                        btn.textContent = '⬇️';
+                    }, 1600);
                 });
             } catch (error) {
-                console.error('下载失败:', error);
-                btn.innerHTML = '✕';
+                console.error('YouTube thumbnail download failed:', error);
+                btn.textContent = '';
+                btn.classList.add('is-error');
                 setTimeout(() => {
-                    btn.innerHTML = '猬囷笍';
-                    btn.classList.remove('downloading');
-                }, 2000);
+                    btn.classList.remove('downloading', 'is-error');
+                    btn.textContent = '⬇️';
+                }, 1600);
             }
         });
-
         return btn;
     }
 
@@ -4304,7 +4321,7 @@ console.log('WebCraft 网页工坊内容脚本已加载');
         const frameBtn = document.createElement('button');
         frameBtn.className = 'yt-webcraft-player-btn';
         frameBtn.type = 'button';
-        frameBtn.textContent = '帧';
+        frameBtn.textContent = '📷';
         frameBtn.dataset.label = '截取单帧';
         frameBtn.title = '截取当前 YouTube 单帧';
         frameBtn.addEventListener('click', async (event) => {
@@ -4313,14 +4330,14 @@ console.log('WebCraft 网页工坊内容脚本已加载');
             if (frameBtn.classList.contains('is-busy')) return;
             frameBtn.classList.add('is-busy');
             const oldText = frameBtn.textContent;
-            frameBtn.textContent = '帧';
+            frameBtn.textContent = '📷';
             try {
                 const result = await captureYoutubeFrame(panel);
                 frameBtn.textContent = result?.success ? '已保存' : '失败';
                 if (!result?.success) console.warn('[YouTube] frame capture failed:', result?.error);
             } catch (error) {
                 console.error('[YouTube] frame capture failed:', error);
-                frameBtn.textContent = '帧';
+                frameBtn.textContent = '📷';
             }
             setTimeout(() => {
                 frameBtn.textContent = oldText;
@@ -4331,7 +4348,7 @@ console.log('WebCraft 网页工坊内容脚本已加载');
         const videoBtn = document.createElement('button');
         videoBtn.className = 'yt-webcraft-player-btn';
         videoBtn.type = 'button';
-        videoBtn.textContent = '录';
+        videoBtn.textContent = '●';
         videoBtn.dataset.label = '截取视频';
         videoBtn.title = '录制当前 YouTube 播放器区域视频';
         videoBtn.addEventListener('click', (event) => {
@@ -4513,36 +4530,19 @@ console.log('WebCraft 网页工坊内容脚本已加载');
      * 处理缩略�?播放器元�?
      */
     function processElement(element) {
-        // 检查是否已处理
-        const renderer = element.matches?.(VIDEO_RENDERER_SELECTOR)
-            ? element
-            : element.closest?.(VIDEO_RENDERER_SELECTOR);
+        const renderer = element.matches?.(VIDEO_RENDERER_SELECTOR) ? element : element.closest?.(VIDEO_RENDERER_SELECTOR);
         const processedElement = renderer || element;
-        if (processedElement.dataset.ytDownloadProcessed) return;
-
+        if (!processedElement || processedElement.dataset.ytDownloadProcessed) return;
         const videoId = extractVideoIdFromElement(processedElement);
         if (!videoId) return;
-
+        const hostInfo = findThumbnailButtonHost(renderer || element, element);
+        const buttonHost = hostInfo.buttonHost;
+        const visualImage = hostInfo.visualImage;
+        if (!buttonHost) return;
         processedElement.dataset.ytDownloadProcessed = 'true';
-        const { buttonHost, visualImage } = findThumbnailButtonHost(renderer || element, element);
-        if (document.querySelector(`.yt-thumbnail-download-btn[data-video-id="${videoId}"]`)) return;
-
-        // 确保容器有相对定�?        const computedStyle = window.getComputedStyle(buttonHost);
-        if (computedStyle.position === 'static') {
-            const tagName = buttonHost.tagName?.toLowerCase();
-            if (element.id === 'movie_player' || !['ytd-thumbnail', 'ytd-playlist-thumbnail', 'a'].includes(tagName)) {
-                // Floating buttons are appended to body, so avoid changing YouTube's native thumbnail layout.'
-            }
-        }
-
-        // 添加标记�?(用于hover效果)
-        if (false && !buttonHost.classList.contains('yt-thumbnail-container')) {
-            buttonHost.classList.add('yt-thumbnail-container');
-        }
-        // Do not add layout-affecting classes to YouTube thumbnail hosts.
-
-        // 创建并添加下载按�?        const isPlayer = element.id === 'movie_player';
-        // 传�?element 引用以便点击时获取最新标�?        const btn = createDownloadButton(videoId, isPlayer, renderer || element);
+        processedElement.dataset.videoId = videoId;
+        const isPlayer = element.id === 'movie_player';
+        const btn = createDownloadButton(videoId, isPlayer, renderer || element);
         positionDownloadButton(btn, buttonHost, visualImage);
         document.body.appendChild(btn);
         bindFloatingDownloadButton(btn, renderer || buttonHost, buttonHost, visualImage);
@@ -4552,20 +4552,9 @@ console.log('WebCraft 网页工坊内容脚本已加载');
      * 扫描并处理页面上的缩略图
      */
     function scanThumbnails() {
-        if (!youtubeToolsEnabled) {
-            applyRecommendationFilter();
-            return;
-        }
-
-        // 1. 常规缩略�?(Home, Search, Channel, Playlist)
-        // ytd-thumbnail: 主缩略图容器 (Grid, List)
-        // ytd-playlist-thumbnail: 播放列表缩略�?
-
-        // 2. 鍙充晶鎺ㄨ崘/渚ц竟鏍?(Important for User Request)
-        // 它们通常�?ytd-compact-video-renderer �?
-
+        if (!youtubeToolsEnabled) { applyRecommendationFilter(); return; }
         const selectors = [
-            // 右侧推荐/侧边栏先处理整条卡片，避免按钮挂到不可见的内部节�?            '#secondary ytd-compact-video-renderer:not([data-yt-download-processed])',
+            '#secondary ytd-compact-video-renderer:not([data-yt-download-processed])',
             '#secondary ytd-compact-radio-renderer:not([data-yt-download-processed])',
             '#secondary ytd-compact-playlist-renderer:not([data-yt-download-processed])',
             '#secondary ytd-compact-lockup-view-model:not([data-yt-download-processed])',
@@ -4575,61 +4564,36 @@ console.log('WebCraft 网页工坊内容脚本已加载');
             '#related ytd-compact-playlist-renderer:not([data-yt-download-processed])',
             '#related ytd-compact-lockup-view-model:not([data-yt-download-processed])',
             '#related yt-lockup-view-model:not([data-yt-download-processed])',
-            // 主页、搜索结�?            'ytd-thumbnail:not([data-yt-download-processed])',
-            // 鎾斁鍒楄〃
-            'ytd-playlist-thumbnail:not([data-yt-download-processed])',
-            // Shorts (鏈夋椂鍊欐槸 ytd-reel-item-renderer)
+            'ytd-rich-item-renderer:not([data-yt-download-processed])',
+            'ytd-video-renderer:not([data-yt-download-processed])',
+            'ytd-grid-video-renderer:not([data-yt-download-processed])',
+            'ytd-playlist-video-renderer:not([data-yt-download-processed])',
             'ytd-reel-item-renderer:not([data-yt-download-processed])',
-            // 侧边�?推荐视频 (最关键)
-            'ytd-compact-video-renderer ytd-thumbnail:not([data-yt-download-processed])',
-            'ytd-compact-video-renderer:not([data-yt-download-processed])',
-            // 旧版/通用 fallback
+            'ytd-thumbnail:not([data-yt-download-processed])',
+            'ytd-playlist-thumbnail:not([data-yt-download-processed])',
             'a#thumbnail:not([data-yt-download-processed])'
         ];
-
-        const thumbnails = document.querySelectorAll(selectors.join(', '));
-
-        thumbnails.forEach(thumbnail => {
-            // 跳过已经处理�?
+        document.querySelectorAll(selectors.join(', ')).forEach(thumbnail => {
             if (thumbnail.dataset.ytDownloadProcessed) return;
-
-            // 过滤掉太小的图标 (头像�?，保留侧边栏缩略�?
-            // 侧边栏缩略图通常宽度 > 10px
             const isRenderer = thumbnail.matches?.(VIDEO_RENDERER_SELECTOR);
-            if (!isRenderer && thumbnail.offsetWidth > 10 && thumbnail.offsetWidth < 120 && thumbnail.offsetHeight < 60) {
-                // 可能是头像或者微型图标，忽略，但要小心侧边栏 compact 模式
-                // ytd-compact-video-renderer 的缩略图通常�?168x94
-                return; // Added return here to skip processing small elements
-            }
-
-            // 额外检查：如果�?Shorts 的某�?UI，结构可能不�?            processElement(thumbnail);
+            if (!isRenderer && thumbnail.offsetWidth > 10 && thumbnail.offsetWidth < 120 && thumbnail.offsetHeight < 60) return;
+            processElement(thumbnail);
         });
-
         applyRecommendationFilter();
         ensureYoutubePlayerTools();
-
-        // 2. 当前播放视频的播放器
-        // 只有�?Watch 页面才处�?
         if (window.location.pathname === '/watch') {
-            const player = document.querySelector('#movie_player:not([data-yt-download-processed])');
-            if (player) {
-                // 确保不要在广告播放时处理，或者更�?ID
-                processElement(player);
-            } else {
-                // 如果播放器已经处理过，但 URL 变了 (SPA跳转)，需要更�?ID
-                const processedPlayer = document.querySelector('#movie_player[data-yt-download-processed]');
-                if (processedPlayer) {
-                    const currentVideoId = new URLSearchParams(window.location.search).get('v');
-                    const btn = processedPlayer.querySelector('.yt-thumbnail-download-btn');
-                    if (btn && btn.dataset.videoId !== currentVideoId) {
-                        // 视频 ID 变了，移除旧按钮，重置状�?
-                        btn.remove();
-                        processedPlayer.querySelector('.yt-webcraft-player-tools')?.remove();
-                        processedPlayer.removeAttribute('data-yt-download-processed');
-                        // 下次扫描会重新添�?
-                    }
+            const currentVideoId = new URLSearchParams(window.location.search).get('v');
+            const processedPlayer = document.querySelector('#movie_player[data-yt-download-processed]');
+            if (processedPlayer) {
+                const btn = document.querySelector(".yt-thumbnail-download-btn[data-video-id='" + (processedPlayer.dataset.videoId || '') + "']");
+                if (btn && btn.dataset.videoId !== currentVideoId) {
+                    btn.remove();
+                    processedPlayer.querySelector('.yt-webcraft-player-tools')?.remove();
+                    processedPlayer.removeAttribute('data-yt-download-processed');
                 }
             }
+            const player = document.querySelector('#movie_player:not([data-yt-download-processed])');
+            if (player) processElement(player);
         }
     }
 
