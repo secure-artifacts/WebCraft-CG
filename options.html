@@ -121,6 +121,20 @@
         </label>
         <label class="setting-card">
           <span>
+            <strong>显示右侧画布悬浮按钮</strong>
+            <small>关闭后隐藏网页右侧的“画布”入口，仍可用快捷键打开画布。</small>
+          </span>
+          <input type="checkbox" id="collectorFloatingEnabled" data-setting="collectorFloatingEnabled" checked>
+        </label>
+        <label class="setting-card">
+          <span>
+            <strong>选中文字自动显示快捷菜单</strong>
+            <small>关闭后不再自动弹出采集/翻译菜单，需要时用快捷键呼出。</small>
+          </span>
+          <input type="checkbox" id="collectorSelectionMenuEnabled" data-setting="collectorSelectionMenuEnabled" checked>
+        </label>
+        <label class="setting-card">
+          <span>
             <strong>启用网页收藏</strong>
             <small>允许在画布中保存当前网页的标题、链接、摘要和选中文本。</small>
           </span>
@@ -194,7 +208,32 @@
             <option value="de">德语</option>
             <option value="es">西班牙语</option>
             <option value="ru">俄语</option>
+            <option value="pl">波兰语</option>
+            <option value="sv">瑞典语</option>
+            <option value="hu">马扎尔语 / 匈牙利语</option>
+            <option value="hr">克罗地亚语</option>
+            <option value="bg">保加利亚语</option>
+            <option value="it">意大利语</option>
+            <option value="pt">葡萄牙语</option>
+            <option value="nl">荷兰语</option>
+            <option value="cs">捷克语</option>
+            <option value="da">丹麦语</option>
+            <option value="fi">芬兰语</option>
+            <option value="el">希腊语</option>
+            <option value="ro">罗马尼亚语</option>
+            <option value="sk">斯洛伐克语</option>
+            <option value="sl">斯洛文尼亚语</option>
+            <option value="uk">乌克兰语</option>
+            <option value="tr">土耳其语</option>
+            <option value="ar">阿拉伯语</option>
           </select>
+        </label>
+        <label class="setting-line">
+          <span>
+            <strong>显示右侧浮动翻译按钮</strong>
+            <small>关闭后隐藏网页右侧的“翻译”入口，翻译快捷键设置仍按总开关生效。</small>
+          </span>
+          <input type="checkbox" id="translateFloatingEnabled" data-setting="translateFloatingEnabled" checked>
         </label>
         <label class="setting-line">
           <span>
@@ -298,6 +337,12 @@
         <p>记录这套工具最近做过什么，后续排查也方便。</p>
       </header>
       <div class="panel changelog">
+        <h3>1.7.3</h3>
+        <ul>
+          <li>翻译目标语言新增波兰语、瑞典语、马扎尔语、克罗地亚语、保加利亚语等更多选项。</li>
+          <li>新增右侧画布悬浮按钮、右侧浮动翻译按钮和选中文字快捷菜单开关。</li>
+          <li>选中文字快捷菜单支持关闭自动弹出，并可通过快捷键按需呼出。</li>
+        </ul>
         <h3>1.7.2</h3>
         <ul>
           <li>恢复 YouTube 各类列表和推荐区的缩略图下载按钮。</li>

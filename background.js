@@ -67,7 +67,25 @@ const DEEPL_LANGUAGE_MAP = {
     fr: 'FR',
     de: 'DE',
     es: 'ES',
-    ru: 'RU'
+    ru: 'RU',
+    pl: 'PL',
+    sv: 'SV',
+    hu: 'HU',
+    hr: 'HR',
+    bg: 'BG',
+    it: 'IT',
+    pt: 'PT-PT',
+    nl: 'NL',
+    cs: 'CS',
+    da: 'DA',
+    fi: 'FI',
+    el: 'EL',
+    ro: 'RO',
+    sk: 'SK',
+    sl: 'SL',
+    uk: 'UK',
+    tr: 'TR',
+    ar: 'AR'
 };
 
 function getDeepLTargetLang(direction, target) {
@@ -521,6 +539,12 @@ chrome.commands.onCommand.addListener((command) => {
             if (!tab?.id) return;
             toggleCollectorCanvasInTab(tab.id);
         });
+    } else if (command === 'show-selection-actions') {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const tab = tabs[0];
+            if (!tab?.id) return;
+            showCollectorSelectionActionsInTab(tab.id);
+        });
     }
 });
 
@@ -540,6 +564,28 @@ function toggleCollectorCanvasInTab(tabId) {
             chrome.tabs.sendMessage(tabId, { action: 'toggleCollectorCanvas' }, () => {
                 if (chrome.runtime.lastError) {
                     console.warn('Toggle collector canvas failed:', chrome.runtime.lastError.message);
+                }
+            });
+        });
+    });
+}
+
+function showCollectorSelectionActionsInTab(tabId) {
+    chrome.tabs.sendMessage(tabId, { action: 'showCollectorSelectionActions' }, () => {
+        if (!chrome.runtime.lastError) return;
+
+        chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['jspdf.umd.min.js', 'content.js']
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.warn('Inject selection actions failed:', chrome.runtime.lastError.message);
+                return;
+            }
+
+            chrome.tabs.sendMessage(tabId, { action: 'showCollectorSelectionActions' }, () => {
+                if (chrome.runtime.lastError) {
+                    console.warn('Show selection actions failed:', chrome.runtime.lastError.message);
                 }
             });
         });

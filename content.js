@@ -842,15 +842,18 @@ async function doFullPageCapture(name, format, tool, options = {}) {
     let isEnabled = true;
     let shortcutType = 'triple_space';
     let targetLang = 'auto';
+    let translateFloatingEnabled = true;
     let translateSelectionOnly = true;
     const FLOATING_TRANSLATOR_PANEL_ID = 'webcraft-floating-translator-panel';
     const FLOATING_TRANSLATOR_HANDLE_ID = 'webcraft-floating-translator-handle';
 
-    chrome.storage.local.get(['translateEnabled', 'translateShortcut', 'translateTargetLang', 'translateSelectionOnly'], (res) => {
+    chrome.storage.local.get(['translateEnabled', 'translateShortcut', 'translateTargetLang', 'translateFloatingEnabled', 'translateSelectionOnly'], (res) => {
         if (res.translateEnabled !== undefined) isEnabled = res.translateEnabled;
         if (res.translateShortcut) shortcutType = res.translateShortcut;
         if (res.translateTargetLang) targetLang = res.translateTargetLang;
+        if (res.translateFloatingEnabled !== undefined) translateFloatingEnabled = res.translateFloatingEnabled;
         if (res.translateSelectionOnly !== undefined) translateSelectionOnly = res.translateSelectionOnly;
+        updateTranslatorFloatingVisibility();
     });
 
     // 鐩戝惉璁剧疆鍙樻洿娑堟伅
@@ -859,8 +862,27 @@ async function doFullPageCapture(name, format, tool, options = {}) {
             if (req.payload.enabled !== undefined) isEnabled = req.payload.enabled;
             if (req.payload.shortcut !== undefined) shortcutType = req.payload.shortcut;
             if (req.payload.targetLang !== undefined) targetLang = req.payload.targetLang || 'auto';
+            if (req.payload.floatingEnabled !== undefined) translateFloatingEnabled = req.payload.floatingEnabled;
             if (req.payload.selectionOnly !== undefined) translateSelectionOnly = req.payload.selectionOnly;
+            updateTranslatorFloatingVisibility();
         }
+    });
+
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace !== 'local') return;
+        let changed = false;
+        if (changes.translateEnabled) {
+            isEnabled = changes.translateEnabled.newValue !== false;
+            changed = true;
+        }
+        if (changes.translateShortcut) shortcutType = changes.translateShortcut.newValue || 'triple_space';
+        if (changes.translateTargetLang) targetLang = changes.translateTargetLang.newValue || 'auto';
+        if (changes.translateFloatingEnabled) {
+            translateFloatingEnabled = changes.translateFloatingEnabled.newValue !== false;
+            changed = true;
+        }
+        if (changes.translateSelectionOnly) translateSelectionOnly = changes.translateSelectionOnly.newValue !== false;
+        if (changed) updateTranslatorFloatingVisibility();
     });
 
     // 中文字符正则表达�?
@@ -1368,7 +1390,26 @@ async function doFullPageCapture(name, format, tool, options = {}) {
         makeTranslationPopupDraggable(popup, header);
     }
 
+    function shouldShowFloatingTranslator() {
+        return isEnabled && translateFloatingEnabled;
+    }
+
+    function removeFloatingTranslatorUi() {
+        document.getElementById(FLOATING_TRANSLATOR_HANDLE_ID)?.remove();
+        document.getElementById(FLOATING_TRANSLATOR_PANEL_ID)?.remove();
+        if (!isEnabled) document.getElementById('translator-selection-popup')?.remove();
+    }
+
+    function updateTranslatorFloatingVisibility() {
+        if (shouldShowFloatingTranslator()) {
+            ensureFloatingTranslatorHandle();
+        } else {
+            removeFloatingTranslatorUi();
+        }
+    }
+
     function ensureFloatingTranslatorHandle() {
+        if (!shouldShowFloatingTranslator()) return null;
         let handle = document.getElementById(FLOATING_TRANSLATOR_HANDLE_ID);
         if (handle) return handle;
 
@@ -1528,7 +1569,25 @@ async function doFullPageCapture(name, format, tool, options = {}) {
             ['法语', 'fr'],
             ['德语', 'de'],
             ['西班牙语', 'es'],
-            ['俄语', 'ru']
+            ['俄语', 'ru'],
+            ['波兰语', 'pl'],
+            ['瑞典语', 'sv'],
+            ['马扎尔语 / 匈牙利语', 'hu'],
+            ['克罗地亚语', 'hr'],
+            ['保加利亚语', 'bg'],
+            ['意大利语', 'it'],
+            ['葡萄牙语', 'pt'],
+            ['荷兰语', 'nl'],
+            ['捷克语', 'cs'],
+            ['丹麦语', 'da'],
+            ['芬兰语', 'fi'],
+            ['希腊语', 'el'],
+            ['罗马尼亚语', 'ro'],
+            ['斯洛伐克语', 'sk'],
+            ['斯洛文尼亚语', 'sl'],
+            ['乌克兰语', 'uk'],
+            ['土耳其语', 'tr'],
+            ['阿拉伯语', 'ar']
         ].forEach(([label, value]) => targetSelect.appendChild(createFloatingTranslatorControl('option', label, value)));
 
         const input = document.createElement('textarea');
@@ -1662,6 +1721,7 @@ async function doFullPageCapture(name, format, tool, options = {}) {
     }
 
     async function showFloatingTranslatorPanel(tryPaste = false) {
+        if (!shouldShowFloatingTranslator()) return;
         const panel = ensureFloatingTranslatorPanel();
         const input = panel.querySelector('[data-role="translator-input"]');
         const engineSelect = panel.querySelector('[data-role="translator-engine"]');
@@ -1692,6 +1752,7 @@ async function doFullPageCapture(name, format, tool, options = {}) {
     }
 
     function toggleFloatingTranslatorPanel(tryPaste = false) {
+        if (!shouldShowFloatingTranslator()) return;
         const panel = ensureFloatingTranslatorPanel();
         if (panel.style.display === 'flex') {
             hideFloatingTranslatorPanel();
@@ -1701,7 +1762,7 @@ async function doFullPageCapture(name, format, tool, options = {}) {
     }
 
     async function handlePageSelectionTranslation(selectionInfo) {
-        if (isTranslating) return;
+        if (!isEnabled || isTranslating) return;
 
         const text = selectionInfo.text.trim();
         if (!text) return;
@@ -1929,7 +1990,7 @@ async function doFullPageCapture(name, format, tool, options = {}) {
         if (selectionInfo) handlePageSelectionTranslation(selectionInfo);
     };
     window.__toolboxToggleFloatingTranslator = () => toggleFloatingTranslatorPanel(true);
-    ensureFloatingTranslatorHandle();
+    updateTranslatorFloatingVisibility();
 
     console.log('翻译助手已加载 - 在任意输入框按三次空格触发翻译（中英双向）');
 })();
@@ -1948,6 +2009,8 @@ async function doFullPageCapture(name, format, tool, options = {}) {
     let collectorTypeFilter = 'all';
     let lastCollectorToggleAt = 0;
     let collectorOpenOnAdd = true;
+    let collectorFloatingEnabled = true;
+    let collectorSelectionMenuEnabled = true;
     let collectorPageSaveEnabled = true;
     let collectorVisibleTypes = {
         text: true,
@@ -1958,6 +2021,8 @@ async function doFullPageCapture(name, format, tool, options = {}) {
 
     function applyCollectorSettings(result = {}) {
         collectorOpenOnAdd = result.collectorOpenOnAdd !== false;
+        collectorFloatingEnabled = result.collectorFloatingEnabled !== false;
+        collectorSelectionMenuEnabled = result.collectorSelectionMenuEnabled !== false;
         collectorPageSaveEnabled = result.collectorPageSaveEnabled !== false;
         collectorVisibleTypes = {
             text: result.collectorShowTextFilter !== false,
@@ -1968,10 +2033,14 @@ async function doFullPageCapture(name, format, tool, options = {}) {
         if (collectorTypeFilter !== 'all' && !collectorVisibleTypes[collectorTypeFilter]) {
             collectorTypeFilter = 'all';
         }
+        updateCollectorFloatingVisibility();
+        if (!collectorSelectionMenuEnabled) removeActionBar();
     }
 
     chrome.storage.local.get([
         'collectorOpenOnAdd',
+        'collectorFloatingEnabled',
+        'collectorSelectionMenuEnabled',
         'collectorPageSaveEnabled',
         'collectorShowTextFilter',
         'collectorShowImageFilter',
@@ -1983,6 +2052,8 @@ async function doFullPageCapture(name, format, tool, options = {}) {
         if (namespace !== 'local') return;
         const collectorKeys = [
             'collectorOpenOnAdd',
+            'collectorFloatingEnabled',
+            'collectorSelectionMenuEnabled',
             'collectorPageSaveEnabled',
             'collectorShowTextFilter',
             'collectorShowImageFilter',
@@ -2502,7 +2573,18 @@ async function doFullPageCapture(name, format, tool, options = {}) {
         });
     }
 
+    function updateCollectorFloatingVisibility() {
+        const handle = document.getElementById(HANDLE_ID);
+        if (collectorFloatingEnabled) {
+            ensureHandle();
+            return;
+        }
+        if (handle) handle.remove();
+        hidePanel();
+    }
+
     function ensureHandle() {
+        if (!collectorFloatingEnabled) return null;
         let handle = document.getElementById(HANDLE_ID);
         if (handle) return handle;
 
@@ -3072,7 +3154,9 @@ async function doFullPageCapture(name, format, tool, options = {}) {
     }
 
     function scheduleSelectionCheck() {
+        if (!collectorSelectionMenuEnabled) return;
         setTimeout(() => {
+            if (!collectorSelectionMenuEnabled) return;
             const info = getSelectionInfo();
             if (info) {
                 showActionBar(info);
@@ -3080,6 +3164,13 @@ async function doFullPageCapture(name, format, tool, options = {}) {
                 removeActionBar();
             }
         }, 60);
+    }
+
+    function showCollectorSelectionActions() {
+        const info = getSelectionInfo();
+        if (!info) return false;
+        showActionBar(info);
+        return true;
     }
 
     document.addEventListener('mouseup', (event) => {
@@ -3113,19 +3204,24 @@ async function doFullPageCapture(name, format, tool, options = {}) {
 
     document.addEventListener('keydown', (event) => {
         const isCollectorShortcut = event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'q';
-        if (!isCollectorShortcut) return;
+        const isSelectionActionsShortcut = event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 'w';
+        if (!isCollectorShortcut && !isSelectionActionsShortcut) return;
         if (isEditableElement(event.target) || isInsideCollectorUi(event.target)) return;
 
         event.preventDefault();
         event.stopPropagation();
-        togglePanelFromShortcut();
+        if (isSelectionActionsShortcut) {
+            showCollectorSelectionActions();
+        } else {
+            togglePanelFromShortcut();
+        }
     }, true);
 
     document.addEventListener('mousedown', (event) => {
         if (!isInsideCollectorUi(event.target)) removeActionBar();
     }, true);
 
-    ensureHandle();
+    updateCollectorFloatingVisibility();
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'local' && changes[STORAGE_KEY]) {
             const items = Array.isArray(changes[STORAGE_KEY].newValue) ? changes[STORAGE_KEY].newValue : [];
@@ -3134,9 +3230,14 @@ async function doFullPageCapture(name, format, tool, options = {}) {
     });
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        if (request.action !== 'toggleCollectorCanvas') return;
-        togglePanelFromShortcut();
-        sendResponse?.({ success: true });
+        if (request.action === 'toggleCollectorCanvas') {
+            togglePanelFromShortcut();
+            sendResponse?.({ success: true });
+            return;
+        }
+        if (request.action !== 'showCollectorSelectionActions') return;
+        const success = showCollectorSelectionActions();
+        sendResponse?.(success ? { success: true } : { success: false, error: '没有选中的文本' });
     });
 
     console.log('网页采集画布已加载');

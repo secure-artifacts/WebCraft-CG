@@ -7,6 +7,7 @@ const DEFAULTS = {
   translateTargetLang: 'auto',
   deeplApiKey: '',
   deeplApiEndpoint: 'auto',
+  translateFloatingEnabled: true,
   translateSelectionOnly: true,
   translateHistoryEnabled: true,
   translationPhrases: '',
@@ -15,6 +16,8 @@ const DEFAULTS = {
   recordingMaxMinutes: 30,
   recordingMaxSizeMB: 500,
   collectorOpenOnAdd: true,
+  collectorFloatingEnabled: true,
+  collectorSelectionMenuEnabled: true,
   collectorPageSaveEnabled: true,
   collectorShowImageFilter: true,
   collectorShowTextFilter: true,
@@ -119,6 +122,7 @@ function notifyTabs(key, value) {
   if (key === 'translateEnabled') message.enabled = value;
   if (key === 'translateEngine') message.engine = value;
   if (key === 'translateTargetLang') message.targetLang = value;
+  if (key === 'translateFloatingEnabled') message.floatingEnabled = value;
   if (key === 'translateSelectionOnly') message.selectionOnly = value;
 
   if (Object.keys(message).length > 0) {

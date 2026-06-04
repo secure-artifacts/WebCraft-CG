@@ -30,6 +30,7 @@ jobs:
       - name: Validate extension files
         run: |
           test -f manifest.json
+          test -f LICENSE
           test -f background.js
           test -f content.js
           test -f popup.html
@@ -62,6 +63,7 @@ jobs:
             'options.js',
             'options.css',
             'README.md'
+            'LICENSE'
           )
           $pattern = 'AIza|sk-|Bearer [A-Za-z0-9]|SPREADSHEET_ID\s*=\s*[''"][^''"]|DEFAULT_.*_ID\s*=\s*[''"][^''"]|docs\.google\.com/spreadsheets/d/[A-Za-z0-9_-]+|DeepL-Auth-Key\s+[A-Za-z0-9]'
           $matches = Select-String -Path $paths -Pattern $pattern -CaseSensitive:$false
@@ -76,6 +78,7 @@ jobs:
           $zip = "WebCraft-CG-v$env:VERSION.zip"
           $files = @(
             'README.md',
+            'LICENSE',
             'manifest.json',
             'background.js',
             'content.js',
