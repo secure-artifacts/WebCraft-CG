@@ -78,6 +78,26 @@
           <button id="btnStartRecording" class="btn secondary compact-action record-action" title="录制（区域录像）">录屏</button>
         </div>
 
+        <div class="auto-capture-box">
+          <div class="auto-capture-grid">
+            <label class="mini-field" for="autoCaptureIntervalSeconds">
+              <span>&#38388;&#38548;</span>
+              <input type="number" id="autoCaptureIntervalSeconds" min="4" max="10" step="1" value="6">
+            </label>
+            <label class="mini-field" for="autoCaptureDirection">
+              <span>&#26041;&#21521;</span>
+              <select id="autoCaptureDirection">
+                <option value="right">&#21491;&#38190;</option>
+                <option value="left">&#24038;&#38190;</option>
+              </select>
+            </label>
+          </div>
+          <div class="auto-capture-actions">
+            <button id="btnStartAutoCapture" class="btn primary compact-action" type="button">&#33258;&#21160;&#25130;&#22270;</button>
+            <button id="btnStopAutoCapture" class="btn secondary compact-action" type="button">&#20572;&#27490;</button>
+          </div>
+        </div>
+
         <div class="control-group" style="margin-top: 10px;">
           <div class="toggle-option" style="padding: 8px 0;">
             <label class="toggle-label" for="manualCaptureMode" style="flex: 1;">

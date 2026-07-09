@@ -24,6 +24,8 @@ const DEFAULTS = {
   collectorShowPageFilter: true,
   collectorShowLinkFilter: true,
   screenshotFilenameTemplate: '截图凭证-{tool}-{name}-{date}',
+  autoCaptureIntervalSeconds: 6,
+  autoCaptureDirection: 'right',
   youtubeThumbnailFilenameTemplate: '{channel}-{title}-{date}',
   youtubeHideShorts: false,
   youtubeHideLive: false,
@@ -108,6 +110,10 @@ function saveControl(control) {
     value = control.checked;
   } else if (control.type === 'number') {
     value = Number(control.value) || DEFAULTS[key];
+    if (key === 'autoCaptureIntervalSeconds') {
+      value = Math.min(10, Math.max(4, Math.round(value)));
+      control.value = value;
+    }
   } else {
     value = control.value;
   }

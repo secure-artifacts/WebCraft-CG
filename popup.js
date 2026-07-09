@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnVisible = document.getElementById('btnCaptureVisible');
   const btnFull = document.getElementById('btnCaptureFull');
   const btnStartRecording = document.getElementById('btnStartRecording');
+  const btnStartAutoCapture = document.getElementById('btnStartAutoCapture');
+  const btnStopAutoCapture = document.getElementById('btnStopAutoCapture');
+  const autoCaptureIntervalInput = document.getElementById('autoCaptureIntervalSeconds');
+  const autoCaptureDirectionSelect = document.getElementById('autoCaptureDirection');
   const manualCaptureCheckbox = document.getElementById('manualCaptureMode');
   const customToolsContainer = document.getElementById('customToolsContainer');
   const addCustomToolBtn = document.getElementById('addCustomTool');
@@ -73,6 +77,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getTool() {
     return document.querySelector('input[name="tool"]:checked')?.value || 'Midjourney生成';
+  }
+
+  function getAutoCaptureInterval() {
+    const seconds = Number(autoCaptureIntervalInput?.value);
+    return Math.min(10, Math.max(4, Math.round(Number.isFinite(seconds) ? seconds : 6)));
+  }
+
+  function getAutoCaptureDirection() {
+    return autoCaptureDirectionSelect?.value === 'left' ? 'left' : 'right';
+  }
+
+  function sendTabMessageToActiveTab(message, callback) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs[0]?.id) {
+        callback?.({ success: false, error: '\u6ca1\u6709\u627e\u5230\u5f53\u524d\u6807\u7b7e\u9875' });
+        return;
+      }
+
+      chrome.tabs.sendMessage(tabs[0].id, message, (response) => {
+        if (chrome.runtime.lastError) {
+          callback?.({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        callback?.(response || { success: true });
+      });
+    });
   }
 
   function renderCustomTools(customTools = [], selectedTool = '') {
@@ -152,6 +182,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   nameInput.addEventListener('input', () => chrome.storage.local.set({ customName: nameInput.value }));
   manualCaptureCheckbox.addEventListener('change', event => chrome.storage.local.set({ manualCaptureMode: event.target.checked }));
+  autoCaptureIntervalInput?.addEventListener('change', () => {
+    const interval = getAutoCaptureInterval();
+    autoCaptureIntervalInput.value = interval;
+    chrome.storage.local.set({ autoCaptureIntervalSeconds: interval });
+  });
+  autoCaptureDirectionSelect?.addEventListener('change', () => {
+    chrome.storage.local.set({ autoCaptureDirection: getAutoCaptureDirection() });
+  });
 
   chrome.storage.local.get([
     'customName',
@@ -160,6 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'activeTab',
     'customTools',
     'manualCaptureMode',
+    'autoCaptureIntervalSeconds',
+    'autoCaptureDirection',
     'translateEnabled',
     'translateShortcut',
     'translateTargetLang',
@@ -176,6 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     renderCustomTools(result.customTools || [], result.tool);
     manualCaptureCheckbox.checked = !!result.manualCaptureMode;
+    if (autoCaptureIntervalInput) autoCaptureIntervalInput.value = result.autoCaptureIntervalSeconds || 6;
+    if (autoCaptureDirectionSelect) autoCaptureDirectionSelect.value = result.autoCaptureDirection || 'right';
     translateEnabledCheckbox.checked = result.translateEnabled !== false;
     if (result.translateShortcut) translateShortcutSelect.value = result.translateShortcut;
     if (result.translateTargetLang) translateTargetLangSelect.value = result.translateTargetLang;
@@ -199,6 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnVisible.disabled = !screenshotEnabled;
     btnFull.disabled = !screenshotEnabled;
     btnStartRecording.disabled = !recordingEnabled;
+    if (btnStartAutoCapture) btnStartAutoCapture.disabled = !screenshotEnabled;
+    if (btnStopAutoCapture) btnStopAutoCapture.disabled = !screenshotEnabled;
     btnDownloadThumbnail.disabled = !youtubeEnabled;
     btnBatchDownload.disabled = !youtubeEnabled;
   });
@@ -210,6 +254,38 @@ document.addEventListener('DOMContentLoaded', () => {
       action: 'captureVisible',
       payload: { name: getName(), format: getFormat(), tool: getTool() }
     }, () => window.close());
+  });
+
+  btnStartAutoCapture?.addEventListener('click', () => {
+    if (btnStartAutoCapture.disabled) return;
+    const interval = getAutoCaptureInterval();
+    const direction = getAutoCaptureDirection();
+    chrome.storage.local.set({ autoCaptureIntervalSeconds: interval, autoCaptureDirection: direction });
+    showScreenshotStatus('\u6b63\u5728\u542f\u52a8\u81ea\u52a8\u622a\u56fe...');
+    sendTabMessageToActiveTab({
+      action: 'startAutoCaptureLoop',
+      payload: {
+        name: getName(),
+        format: getFormat(),
+        tool: getTool(),
+        intervalSeconds: interval,
+        direction
+      }
+    }, (response) => {
+      if (!response?.success) {
+        showScreenshotStatus(response?.error || '\u81ea\u52a8\u622a\u56fe\u542f\u52a8\u5931\u8d25', 'error');
+        return;
+      }
+      showScreenshotStatus('\u81ea\u52a8\u622a\u56fe\u5df2\u542f\u52a8', 'success');
+      setTimeout(() => window.close(), 350);
+    });
+  });
+
+  btnStopAutoCapture?.addEventListener('click', () => {
+    showScreenshotStatus('\u6b63\u5728\u505c\u6b62\u81ea\u52a8\u622a\u56fe...');
+    sendTabMessageToActiveTab({ action: 'stopAutoCaptureLoop' }, (response) => {
+      showScreenshotStatus(response?.success ? '\u81ea\u52a8\u622a\u56fe\u5df2\u505c\u6b62' : (response?.error || '\u505c\u6b62\u5931\u8d25'), response?.success ? 'success' : 'error');
+    });
   });
 
   btnFull.addEventListener('click', () => {

@@ -39,8 +39,13 @@ for (const key of [
 }
 
 assertContains('manifest.json', '"show-selection-actions"', 'Chrome command for manual selection menu');
+assertContains('manifest.json', '"toggle-auto-capture"', 'Chrome command for automatic screenshots');
 assertContains('background.js', "command === 'show-selection-actions'", 'background command handler');
+assertContains('background.js', "command === 'toggle-auto-capture'", 'background automatic screenshot command handler');
+assertContains('background.js', "request.action !== 'autoCaptureStep'", 'background automatic screenshot step handler');
 assertContains('content.js', "request.action !== 'showCollectorSelectionActions'", 'content message handler');
+assertContains('content.js', "request.action === 'startAutoCaptureLoop'", 'content automatic screenshot loop handler');
+assertContains('popup.html', 'btnStartAutoCapture', 'popup automatic screenshot start button');
 assertContains('content.js', 'if (!collectorSelectionMenuEnabled) return;', 'automatic selection menu can be disabled');
 assertContains('content.js', 'updateTranslatorFloatingVisibility();', 'translator handle visibility follows settings');
 assertContains('content.js', 'updateCollectorFloatingVisibility();', 'collector handle visibility follows settings');

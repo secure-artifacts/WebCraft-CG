@@ -3401,10 +3401,199 @@ async function doFullPageCapture(name, format, tool, options = {}) {
 
 // ==================== 娑堟伅鐩戝惉 ====================
 
+const AUTO_CAPTURE_PANEL_ID = 'webcraft-auto-capture-panel';
+const AUTO_CAPTURE_DEFAULT_INTERVAL_SECONDS = 6;
+const AUTO_CAPTURE_SETTLE_DELAY_MS = 1000;
+let autoCaptureState = {
+    running: false,
+    timer: null,
+    busy: false,
+    count: 0,
+    settings: null
+};
+
+function clampAutoCaptureInterval(value) {
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds)) return AUTO_CAPTURE_DEFAULT_INTERVAL_SECONDS;
+    return Math.min(10, Math.max(4, Math.round(seconds)));
+}
+
+function getAutoCapturePanel() {
+    return document.getElementById(AUTO_CAPTURE_PANEL_ID);
+}
+
+function updateAutoCapturePanel(statusText = '') {
+    if (!autoCaptureState.running) return;
+
+    let panel = getAutoCapturePanel();
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = AUTO_CAPTURE_PANEL_ID;
+        panel.style.cssText = [
+            'position: fixed',
+            'right: 12px',
+            'bottom: 12px',
+            'z-index: 2147483647',
+            'display: flex',
+            'align-items: center',
+            'gap: 10px',
+            'padding: 8px 10px',
+            'border-radius: 8px',
+            'background: rgba(17, 24, 39, 0.92)',
+            'color: #fff',
+            'box-shadow: 0 10px 28px rgba(0,0,0,0.26)',
+            "font: 12px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        ].join(';');
+
+        const label = document.createElement('span');
+        label.dataset.role = 'label';
+        panel.appendChild(label);
+
+        const stopBtn = document.createElement('button');
+        stopBtn.type = 'button';
+        stopBtn.textContent = '\u505c\u6b62';
+        stopBtn.style.cssText = [
+            'border: 0',
+            'border-radius: 6px',
+            'padding: 5px 9px',
+            'background: #ef4444',
+            'color: #fff',
+            'cursor: pointer',
+            'font: inherit',
+            'font-weight: 600'
+        ].join(';');
+        stopBtn.addEventListener('click', () => stopAutoCaptureLoop('\u5df2\u505c\u6b62\u81ea\u52a8\u622a\u56fe'));
+        panel.appendChild(stopBtn);
+        document.body.appendChild(panel);
+    }
+
+    const settings = autoCaptureState.settings || {};
+    const label = panel.querySelector('[data-role="label"]');
+    const directionText = settings.direction === 'left' ? '\u5de6\u952e' : '\u53f3\u952e';
+    if (label) {
+        label.textContent = statusText || ('\u81ea\u52a8\u622a\u56fe\u4e2d\uff1a' + autoCaptureState.count + ' \u5f20\uff0c\u6bcf ' + (settings.intervalSeconds || AUTO_CAPTURE_DEFAULT_INTERVAL_SECONDS) + ' \u79d2\uff0c' + directionText);
+    }
+}
+
+function removeAutoCapturePanel(finalText = '') {
+    const panel = getAutoCapturePanel();
+    if (!panel) return;
+
+    if (finalText) {
+        const label = panel.querySelector('[data-role="label"]');
+        if (label) label.textContent = finalText;
+        setTimeout(() => panel.remove(), 1800);
+    } else {
+        panel.remove();
+    }
+}
+
+function sendAutoCaptureStep(settings) {
+    return new Promise((resolve) => {
+        chrome.runtime.sendMessage({
+            action: 'autoCaptureStep',
+            payload: settings
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                resolve({ success: false, error: chrome.runtime.lastError.message });
+                return;
+            }
+            resolve(response || { success: true });
+        });
+    });
+}
+
+async function runAutoCaptureStep() {
+    if (!autoCaptureState.running || autoCaptureState.busy) return;
+
+    autoCaptureState.busy = true;
+    updateAutoCapturePanel('\u81ea\u52a8\u622a\u56fe\u4e2d\uff1a\u6b63\u5728\u622a\u56fe...');
+
+    try {
+        const response = await sendAutoCaptureStep(autoCaptureState.settings);
+        if (!response.success) throw new Error(response.error || '\u81ea\u52a8\u622a\u56fe\u5931\u8d25');
+
+        autoCaptureState.count += 1;
+        autoCaptureState.busy = false;
+        updateAutoCapturePanel();
+
+        if (autoCaptureState.running) {
+            autoCaptureState.timer = setTimeout(runAutoCaptureStep, autoCaptureState.settings.intervalSeconds * 1000 + AUTO_CAPTURE_SETTLE_DELAY_MS);
+        }
+    } catch (error) {
+        autoCaptureState.busy = false;
+        stopAutoCaptureLoop(error.message || '\u81ea\u52a8\u622a\u56fe\u5931\u8d25');
+    }
+}
+
+function startAutoCaptureLoop(payload = {}) {
+    stopAutoCaptureLoop('', { silent: true });
+
+    autoCaptureState = {
+        running: true,
+        timer: null,
+        busy: false,
+        count: 0,
+        settings: {
+            name: payload.name || 'AutoCapture',
+            format: payload.format || 'jpg',
+            tool: payload.tool || 'Midjourney\u751f\u6210',
+            intervalSeconds: clampAutoCaptureInterval(payload.intervalSeconds),
+            direction: payload.direction === 'left' ? 'left' : 'right'
+        }
+    };
+
+    updateAutoCapturePanel('\u81ea\u52a8\u622a\u56fe\u4e2d\uff1a\u51c6\u5907\u5f00\u59cb...');
+    setTimeout(runAutoCaptureStep, 120);
+}
+
+function stopAutoCaptureLoop(reason = '\u5df2\u505c\u6b62\u81ea\u52a8\u622a\u56fe', options = {}) {
+    if (autoCaptureState.timer) clearTimeout(autoCaptureState.timer);
+    const wasRunning = autoCaptureState.running;
+    autoCaptureState.running = false;
+    autoCaptureState.timer = null;
+    autoCaptureState.busy = false;
+
+    if (!options.silent && (wasRunning || reason)) {
+        removeAutoCapturePanel(reason);
+    }
+}
+
+function toggleAutoCaptureLoop(payload = {}) {
+    if (autoCaptureState.running) {
+        stopAutoCaptureLoop('\u5df2\u505c\u6b62\u81ea\u52a8\u622a\u56fe');
+        return false;
+    }
+    startAutoCaptureLoop(payload);
+    return true;
+}
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // 使用立即执行的异步函数处理消�?
     (async () => {
         try {
+            if (request.action === 'startAutoCaptureLoop') {
+                startAutoCaptureLoop(request.payload || {});
+                sendResponse({ success: true, running: true });
+                return;
+            }
+
+            if (request.action === 'stopAutoCaptureLoop') {
+                stopAutoCaptureLoop('\u5df2\u505c\u6b62\u81ea\u52a8\u622a\u56fe');
+                sendResponse({ success: true, running: false });
+                return;
+            }
+
+            if (request.action === 'toggleAutoCaptureLoop') {
+                const running = toggleAutoCaptureLoop(request.payload || {});
+                sendResponse({ success: true, running });
+                return;
+            }
+
+            if (request.action === 'getAutoCaptureStatus') {
+                sendResponse({ success: true, running: autoCaptureState.running, count: autoCaptureState.count });
+                return;
+            }
+
             if (request.action === 'processImage') {
                 const { image, name, format, tool } = request.payload;
                 if (!image || typeof image !== 'string') {

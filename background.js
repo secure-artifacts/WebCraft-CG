@@ -278,6 +278,109 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // ==================== 普通截图（可视区域）====================
 
+// ==================== Auto capture loop ====================
+
+function getSenderTab(sender, callback) {
+    if (sender?.tab?.id) {
+        callback(sender.tab);
+        return;
+    }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        callback(tabs[0] || null);
+    });
+}
+
+function dispatchArrowKeyWithDebugger(tabId, direction) {
+    const key = direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+    const keyCode = direction === 'left' ? 37 : 39;
+    const debuggee = { tabId };
+
+    return new Promise((resolve) => {
+        chrome.debugger.attach(debuggee, '1.3', () => {
+            if (chrome.runtime.lastError) {
+                resolve({ success: false, error: chrome.runtime.lastError.message });
+                return;
+            }
+
+            const baseEvent = {
+                key,
+                code: key,
+                windowsVirtualKeyCode: keyCode,
+                nativeVirtualKeyCode: keyCode
+            };
+
+            chrome.debugger.sendCommand(debuggee, 'Input.dispatchKeyEvent', {
+                ...baseEvent,
+                type: 'keyDown'
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    const message = chrome.runtime.lastError.message;
+                    chrome.debugger.detach(debuggee, () => resolve({ success: false, error: message }));
+                    return;
+                }
+
+                chrome.debugger.sendCommand(debuggee, 'Input.dispatchKeyEvent', {
+                    ...baseEvent,
+                    type: 'keyUp'
+                }, () => {
+                    const message = chrome.runtime.lastError?.message || '';
+                    chrome.debugger.detach(debuggee, () => {
+                        resolve(message ? { success: false, error: message } : { success: true });
+                    });
+                });
+            });
+        });
+    });
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action !== 'autoCaptureStep') return;
+
+    chrome.storage.local.get(['screenshotModuleEnabled'], (settings) => {
+        if (settings.screenshotModuleEnabled === false) {
+            sendResponse({ success: false, error: '\u622a\u56fe\u6a21\u5757\u5df2\u5173\u95ed' });
+            return;
+        }
+
+        getSenderTab(sender, (tab) => {
+            if (!tab?.id) {
+                sendResponse({ success: false, error: '\u6ca1\u6709\u627e\u5230\u5f53\u524d\u6807\u7b7e\u9875' });
+                return;
+            }
+
+            const windowId = Number.isInteger(tab.windowId) ? tab.windowId : null;
+            chrome.tabs.captureVisibleTab(windowId, { format: 'png' }, (dataUrl) => {
+                if (chrome.runtime.lastError) {
+                    sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                    return;
+                }
+
+                const { name, format, tool, direction } = request.payload || {};
+                chrome.tabs.sendMessage(tab.id, {
+                    action: 'processImage',
+                    payload: { image: dataUrl, name, format, tool, isFullPage: false }
+                }, async (response) => {
+                    if (chrome.runtime.lastError) {
+                        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                        return;
+                    }
+
+                    const keyResult = await dispatchArrowKeyWithDebugger(tab.id, direction === 'left' ? 'left' : 'right');
+                    if (!keyResult.success) {
+                        sendResponse({ success: false, error: keyResult.error || '\u65b9\u5411\u952e\u53d1\u9001\u5931\u8d25', captured: true });
+                        return;
+                    }
+
+                    sendResponse(response || { success: true });
+                });
+            });
+        });
+    });
+
+    return true;
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'captureVisible') {
         chrome.storage.local.get(['screenshotModuleEnabled'], (settings) => {
@@ -529,6 +632,37 @@ chrome.commands.onCommand.addListener((command) => {
                                 console.error("Shortcut Msg Error: ", chrome.runtime.lastError);
                             }
                         });
+                    }
+                });
+            });
+        });
+    } else if (command === 'toggle-auto-capture') {
+        chrome.storage.local.get([
+            'customName',
+            'format',
+            'tool',
+            'autoCaptureIntervalSeconds',
+            'autoCaptureDirection',
+            'screenshotModuleEnabled'
+        ], (result) => {
+            if (result.screenshotModuleEnabled === false) return;
+
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                const tab = tabs[0];
+                if (!tab?.id) return;
+
+                chrome.tabs.sendMessage(tab.id, {
+                    action: 'toggleAutoCaptureLoop',
+                    payload: {
+                        name: result.customName || 'AutoCapture',
+                        format: result.format || 'jpg',
+                        tool: result.tool || 'Midjourney\u751f\u6210',
+                        intervalSeconds: result.autoCaptureIntervalSeconds || 6,
+                        direction: result.autoCaptureDirection || 'right'
+                    }
+                }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('Toggle auto capture failed:', chrome.runtime.lastError.message);
                     }
                 });
             });
