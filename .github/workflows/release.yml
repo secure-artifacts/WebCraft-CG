@@ -62,7 +62,7 @@ jobs:
             'options.html',
             'options.js',
             'options.css',
-            'README.md'
+            'README.md',
             'LICENSE'
           )
           $pattern = 'AIza|sk-|Bearer [A-Za-z0-9]|SPREADSHEET_ID\s*=\s*[''"][^''"]|DEFAULT_.*_ID\s*=\s*[''"][^''"]|docs\.google\.com/spreadsheets/d/[A-Za-z0-9_-]+|DeepL-Auth-Key\s+[A-Za-z0-9]'
